@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+instance/*.db
+.run.log
+.run.err.log
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+bandit-report.json

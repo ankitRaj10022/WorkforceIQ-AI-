@@ -1,0 +1,7 @@
+Single-database Alembic environment for WorkforceIQ.
+
+Use:
+  flask db migrate -m "message"
+  flask db upgrade
+
+Do not use db.create_all() for production schema changes.

@@ -1,0 +1,13 @@
+.env
+.venv
+__pycache__
+*.pyc
+instance
+.pytest_cache
+.ruff_cache
+htmlcov
+coverage.xml
+.coverage
+.git
+.run.log
+.run.err.log
