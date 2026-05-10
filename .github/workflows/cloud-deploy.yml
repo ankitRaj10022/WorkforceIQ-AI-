@@ -1,0 +1,84 @@
+name: Cloud Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Type DEPLOY to confirm cloud deployment"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/workforceiq-api
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.inputs.deploy == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        run: echo "image=${IMAGE_NAME}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    if: ${{ github.event.inputs.deploy == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare cloud bundle
+        run: |
+          mkdir -p cloud-bundle
+          cp cloud/compose/docker-compose.cloud.yml cloud-bundle/docker-compose.cloud.yml
+          cp cloud/compose/Caddyfile cloud-bundle/Caddyfile
+
+      - name: Upload compose files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CLOUD_HOST }}
+          username: ${{ secrets.CLOUD_USER }}
+          key: ${{ secrets.CLOUD_SSH_KEY }}
+          source: "cloud-bundle/*"
+          target: "${{ secrets.CLOUD_APP_DIR }}"
+          strip_components: 1
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          WORKFORCEIQ_IMAGE: ${{ needs.build-and-push.outputs.image }}
+        with:
+          host: ${{ secrets.CLOUD_HOST }}
+          username: ${{ secrets.CLOUD_USER }}
+          key: ${{ secrets.CLOUD_SSH_KEY }}
+          envs: WORKFORCEIQ_IMAGE
+          script: |
+            set -eu
+            cd "${{ secrets.CLOUD_APP_DIR }}"
+            test -f .env.cloud
+            docker login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+            WORKFORCEIQ_IMAGE="$WORKFORCEIQ_IMAGE" docker compose -f docker-compose.cloud.yml --env-file .env.cloud pull app celery_worker
+            WORKFORCEIQ_IMAGE="$WORKFORCEIQ_IMAGE" docker compose -f docker-compose.cloud.yml --env-file .env.cloud up -d
+            docker compose -f docker-compose.cloud.yml --env-file .env.cloud ps

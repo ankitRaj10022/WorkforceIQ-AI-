@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from datetime import date, timedelta
 
 import pytest
 from werkzeug.security import generate_password_hash
+
+os.environ["WORKFORCEIQ_CONFIG"] = "testing"
 
 from workforceiq import create_app
 from workforceiq.extensions import db

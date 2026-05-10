@@ -26,6 +26,7 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "scripts/backup_database.py" = ["E402"]
 "scripts/seed_demo_data.py" = ["E402"]
+"tests/conftest.py" = ["E402"]
 
 [tool.bandit]
 exclude_dirs = [".venv", "tests"]
