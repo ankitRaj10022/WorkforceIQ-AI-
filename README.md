@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # WorkforceIQ AI
 
 Starter Flask backend scaffold for the WorkforceIQ AI system prompt. The project encodes the prompt's core operational rules into code: RBAC-aware employee access, structured profile assembly, attrition reporting, department health checks, and audit-log-ready write operations.
@@ -100,3 +101,7 @@ Content-Type: application/json
 ## Schema gaps called out by the scaffold
 
 The prompt requests open requisition counts and salary-band compliance checks, but the provided schema does not include a requisitions table or actual employee compensation fields. The department health endpoint returns these as unavailable rather than guessing.
+=======
+# -WorkforceIQ-AI-
+WorkforceIQ AI is an intelligent employee data management system using Flask, MySQL, and ML to organize workforce data, analyse performance trends, enable fast search, and ensure secure RBAC-based access.
+>>>>>>> 34b67d5cf44803b201729fa6cdff3c23cb8803e0

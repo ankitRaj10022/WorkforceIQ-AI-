@@ -96,6 +96,7 @@ class TestingConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = "sqlite+pysqlite:///:memory:"
     ENABLE_DEV_AUTH = True
     DEV_AUTH_IDENTITIES = DEFAULT_DEV_AUTH_IDENTITIES
+    RATE_LIMIT_BACKEND = "memory"
 
 
 class ProductionConfig(BaseConfig):

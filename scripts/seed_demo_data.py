@@ -102,6 +102,7 @@ def seed() -> None:
             ),
         ]
         db.session.add_all(employees)
+        db.session.flush()
         engineering.head_id = "EMP-0112"
         people_ops.head_id = "EMP-1001"
 
