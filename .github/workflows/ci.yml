@@ -30,6 +30,16 @@ jobs:
       - name: Tests with coverage gate
         run: python -m pytest
 
+      - name: Validate Docker compose files
+        env:
+          WORKFORCEIQ_ENV_FILE: .env.example
+        run: |
+          cp .env.example .env
+          docker compose -f compose.yaml config > /dev/null
+          docker compose -f docker-compose.dev.yml config > /dev/null
+          WORKFORCEIQ_ENV_FILE=.env.production.example docker compose -f docker-compose.prod.yml config > /dev/null
+          (cd cloud/compose && WORKFORCEIQ_CONTAINER_ENV_FILE=env.cloud.example docker compose -f docker-compose.cloud.yml --env-file env.cloud.example config > /dev/null)
+
   docker-build:
     runs-on: ubuntu-latest
     needs: test

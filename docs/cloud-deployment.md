@@ -43,10 +43,10 @@ Set these values in `.env.cloud`:
 - `CORS_ORIGINS`: your frontend origin.
 - `WORKFORCEIQ_IMAGE`: image name, for example `ghcr.io/<owner>/<repo>/workforceiq-api:latest`.
 
-Preflight locally or on the server:
+Preflight against the real cloud env file before first deploy:
 
 ```bash
-python scripts/cloud_preflight.py cloud/compose/.env.cloud
+python scripts/cloud_preflight.py /opt/workforceiq/.env.cloud
 ```
 
 ## Manual Deploy
@@ -55,6 +55,17 @@ python scripts/cloud_preflight.py cloud/compose/.env.cloud
 docker compose -f docker-compose.cloud.yml --env-file .env.cloud up -d
 docker compose -f docker-compose.cloud.yml --env-file .env.cloud ps
 curl -fsS https://$APP_DOMAIN/api/health
+```
+
+For an authenticated smoke test in a production-like environment where dev auth is disabled:
+
+```bash
+python scripts/smoke_test.py \
+  --base-url https://$APP_DOMAIN \
+  --require-auth \
+  --organization-id org-demo \
+  --login-email hr@example.com \
+  --login-password 'replace-with-real-password'
 ```
 
 For config validation from the repo without creating `.env.cloud`:

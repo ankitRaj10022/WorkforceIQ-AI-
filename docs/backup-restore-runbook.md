@@ -24,7 +24,7 @@ mysql -h <staging-host> -u <restore-user> -p workforceiq_restore `
 
 After restore:
 - Run `flask db current` and confirm the expected Alembic revision.
-- Run `python scripts\smoke_test.py --base-url <staging-api> --require-auth`.
+- Run `python scripts\smoke_test.py --base-url <staging-api> --require-auth --organization-id <org_id> --login-email <user_email> --login-password <password>`.
 - Validate one employee profile, one audit-log query, and one compliance export.
 - Record restore duration and compare it to the target RTO.
 

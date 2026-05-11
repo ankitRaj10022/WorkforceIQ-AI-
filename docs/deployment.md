@@ -17,7 +17,8 @@ python run.py
 Use this when you want parity with the v3 architecture: Flask, MySQL, Redis, Elasticsearch, Celery, and Flower.
 
 ```powershell
-docker compose -f docker-compose.dev.yml up --build
+Copy-Item .env.example .env
+docker compose up --build
 ```
 
 The API runs on `http://127.0.0.1:5000` and Flower runs on `http://127.0.0.1:5555`.
@@ -27,6 +28,8 @@ Elasticsearch is optional because the API has a SQL search fallback. To enable i
 ```powershell
 docker compose -f docker-compose.dev.yml --profile search up --build
 ```
+
+The root [compose.yaml](../compose.yaml) now mirrors the development stack, so `docker compose up --build` is the default local container entrypoint. Use [docker-compose.dev.yml](../docker-compose.dev.yml) directly only when you want to be explicit.
 
 ## Production Container Shape
 

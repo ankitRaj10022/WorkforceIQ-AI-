@@ -45,10 +45,27 @@ docker compose -f docker-compose.cloud.yml --env-file .env.cloud up -d
 docker compose -f docker-compose.cloud.yml --env-file .env.cloud ps
 ```
 
+Before deploy, validate the real env file from the repository root:
+
+```bash
+python scripts/cloud_preflight.py cloud/compose/.env.cloud
+```
+
 ## Smoke Test
 
 ```bash
 curl -fsS https://your-api-domain.example.com/api/health
+```
+
+For an authenticated smoke test with real credentials:
+
+```bash
+python scripts/smoke_test.py \
+  --base-url https://your-api-domain.example.com \
+  --require-auth \
+  --organization-id org-demo \
+  --login-email hr@example.com \
+  --login-password 'replace-with-real-password'
 ```
 
 ## Backup
