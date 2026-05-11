@@ -1,79 +1,137 @@
 # WorkforceIQ AI
 
-Starter Flask backend scaffold for the WorkforceIQ AI system prompt. The project encodes the prompt's core operational rules into code: RBAC-aware employee access, structured profile assembly, attrition reporting, department health checks, and audit-log-ready write operations.
+WorkforceIQ AI is a workforce intelligence backend designed for companies that want to move beyond fragmented HR tools, spreadsheet reporting, and manual review cycles. It brings employee records, role-based access, search, reporting, auditability, and ML-assisted insight into one operational platform.
 
-## What is included
+This repository contains the backend foundation: a Flask API, relational data model, authentication layer, reporting services, async task hooks, and AWS deployment paths for pilot and pre-production environments.
 
-- Flask app factory with environment-based configuration
-- SQLAlchemy models for the core workforce schema
-- JWT-based request context with explicit role enforcement
-- Employee profile lookup with joins to departments, roles, performance reviews, and ML predictions
-- Attrition risk reporting with stale-prediction flags and financial exposure estimates
-- Department health checks with traffic-light scoring
-- Write-ready employee update endpoint that records audit logs
-- Dev token endpoint and demo seed script for local testing
-- Persisted account login with MFA setup/verification and lockout
-- Tenant-aware schema and Alembic migration scaffold
-- Employee search endpoint with Elasticsearch adapter and SQL fallback
-- Compliance request/export workflow
-- Celery task hooks and redacted JSON backup tooling
+## Why WorkforceIQ
 
-## Quick start
+Most organizations do not struggle because they lack employee data. They struggle because their data is spread across too many systems, the reporting is delayed, and access control is inconsistent.
 
-1. Create a virtual environment and install dependencies.
-2. Copy `.env.example` to `.env` and adjust settings.
-3. Seed demo data.
-4. Run the Flask server.
+WorkforceIQ is built to solve that operational gap.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
-python scripts\seed_demo_data.py
-python run.py
-```
+- One profile view for workforce records, performance history, and ML outputs.
+- Role-aware access so HR, managers, auditors, and employees do not see the same surface.
+- Search designed for real operating teams, not just raw database lookup.
+- Audit-ready change tracking for sensitive updates.
+- Department and attrition reporting that turns data into an action list.
+- A backend architecture that can start lean and grow into a full production stack.
 
-The app defaults to `sqlite:///workforceiq.db` if `DATABASE_URL` is not set, which makes local evaluation easier. Production should use MySQL 8.x through `DATABASE_URL`.
+## What The Platform Does
 
-The example `.env` is set up for local SQLite development. For production, switch `WORKFORCEIQ_CONFIG=production`, disable dev auth, and point `DATABASE_URL` to MySQL.
+### Workforce records
 
-## Dev auth flow
+- Maintains employee, department, role, session, and review data in a structured relational model.
+- Supports manager relationships, department ownership, role hierarchy, and organization scoping.
+- Returns joined employee profiles instead of forcing consumers to assemble them manually.
 
-Request a local JWT token from one of the registered development identities:
+### Secure access control
 
-```http
-POST /api/auth/token
-Content-Type: application/json
+- JWT-based authentication for API access.
+- Role-aware authorization across employee data, reports, and audit logs.
+- MFA enrollment and verification for persisted user accounts.
+- Login lockout handling to reduce repeated password attack risk.
 
-{
-  "user_id": "hr-manager-1",
-  "role": "HR_MANAGER"
-}
-```
+### Workforce analytics
 
-Use the returned token on protected routes:
+- Employee profile summaries with latest performance data and recent ML predictions.
+- Department health checks covering headcount alignment, performance benchmark, and attrition concentration.
+- Attrition risk reports grouped by department with estimated financial exposure.
+- Stale model output detection so old predictions are not treated as current truth.
 
-```http
-Authorization: Bearer <token>
-```
+### Search and retrieval
 
-Registered local dev identities currently include `super-admin-1`, `hr-manager-1`, `dept-head-eng-1`, `employee-priya`, and `auditor-1`.
+- Employee search by employee ID, name, email, department, role, and level.
+- SQL fallback search built into the core app.
+- Elasticsearch adapter available for stronger relevance scoring and scale-out search.
 
-For persisted auth testing after seeding demo data:
+### Governance and operations
 
-```http
-POST /api/auth/login
-Content-Type: application/json
+- Audit logging for write operations and authentication events.
+- Compliance request workflow for traceable administrative actions.
+- Celery hooks for asynchronous indexing, reporting, and ML tasks.
+- Backup tooling for JSON export of database contents.
 
-{
-  "organization_id": "org-demo",
-  "email": "hr@example.com",
-  "password": "CorrectHorseBatteryStaple!23"
-}
-```
+## Client-Facing Value
 
-## Core endpoints
+WorkforceIQ is intended for companies that are evaluating a shift from disconnected HR operations to a more unified workforce platform.
+
+Typical use cases:
+
+- HR leaders who need department-level workforce visibility without waiting on manual reports.
+- Business units that want manager access without exposing global HR data.
+- Founders or operations teams building internal systems before committing to large HR suites.
+- Organizations piloting workforce analytics before a broader digital transformation effort.
+
+In practical terms, WorkforceIQ helps clients:
+
+- reduce reporting lag,
+- tighten access boundaries,
+- make attrition and performance risk visible earlier,
+- centralize workforce records behind an API,
+- create a cleaner path from pilot to production.
+
+## Product Capabilities In This Repository
+
+| Area | Current capability |
+|---|---|
+| Employee profiles | Joined employee profile response with department, role, manager, recent reviews, and ML predictions |
+| Authentication | JWT login, development token flow, MFA setup and verification |
+| Authorization | Role-aware access control for employee data, reports, and audit logs |
+| Reporting | Attrition risk report and department health check endpoints |
+| Search | SQL search with Elasticsearch integration path |
+| Auditability | Structured audit log writes for update and login events |
+| Data model | Multi-entity workforce schema with organization-aware scoping |
+| Migrations | Alembic migration scaffold with initial industry schema |
+| Async hooks | Celery worker wiring for search and reporting tasks |
+| Deployment | AWS single-host deployment path and managed-stack infrastructure path |
+
+## Architecture
+
+### Application stack
+
+- Python 3.11+ compatible Flask backend
+- SQLAlchemy ORM
+- Alembic migrations
+- JWT auth
+- Redis-backed rate limiting and task queue support
+- Celery worker integration
+- Optional Elasticsearch search backend
+
+### Core data model
+
+The schema includes these primary business entities:
+
+- `organizations`
+- `employees`
+- `departments`
+- `roles`
+- `performance_reviews`
+- `ml_predictions`
+- `rbac_roles`
+- `user_accounts`
+- `user_sessions`
+- `audit_logs`
+- `compliance_requests`
+
+### Deployment shapes
+
+Two deployment directions are already represented in the repo:
+
+1. Low-cost single-host AWS deployment for pilot or pre-production use.
+2. Managed AWS infrastructure path for a more formal production architecture.
+
+The low-cost AWS path has been validated on EC2 with:
+
+- Nginx
+- Flask app
+- MySQL
+- Redis
+- Celery worker
+
+## API Surface
+
+Main endpoints currently exposed by the backend:
 
 - `GET /api/health`
 - `POST /api/auth/token`
@@ -89,17 +147,83 @@ Content-Type: application/json
 - `POST /api/compliance/requests`
 - `GET /api/compliance/requests`
 
-## Manual verification
+## Local Evaluation
 
-1. Seed the demo data and request a `HR_MANAGER` token.
-2. Call `GET /api/employees/EMP-0841` and verify department, role, latest review, and model predictions are returned.
-3. Call `GET /api/reports/attrition-risk` and verify the report groups employees into `HIGH`, `MEDIUM`, and `LOW`.
-4. Call `PATCH /api/employees/EMP-0841` with a changed email and verify an `audit_logs` row is written.
-5. Request an `EMPLOYEE` token for a different employee and confirm cross-profile access is denied.
+The project is easy to run locally for client demos, internal review, or developer onboarding.
 
-## Schema gaps called out by the scaffold
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+python scripts\seed_demo_data.py
+python run.py
+```
 
-The prompt requests open requisition counts and salary-band compliance checks, but the provided schema does not include a requisitions table or actual employee compensation fields. The department health endpoint returns these as unavailable rather than guessing.
-=======
-# -WorkforceIQ-AI-
-WorkforceIQ AI is an intelligent employee data management system using Flask, MySQL, and ML to organize workforce data, analyse performance trends, enable fast search, and ensure secure RBAC-based access.
+By default, local evaluation can use SQLite for zero-friction setup. Production and serious staging should use MySQL.
+
+## Demo Access
+
+For local development, the repository includes a development token flow and seeded demo identities such as:
+
+- `super-admin-1`
+- `hr-manager-1`
+- `dept-head-eng-1`
+- `employee-priya`
+- `auditor-1`
+
+That is useful for evaluation and QA. It is not intended for production use.
+
+## Deployment Notes
+
+For low-cost AWS rollout and redeploy instructions, see:
+
+- [docs/aws-free-tier-deployment.md](docs/aws-free-tier-deployment.md)
+- [scripts/deploy_active_aws_free.ps1](scripts/deploy_active_aws_free.ps1)
+
+For the broader managed AWS infrastructure path, see:
+
+- [docs/aws-deployment.md](docs/aws-deployment.md)
+
+## Current Delivery Status
+
+WorkforceIQ is strongest today as:
+
+- a serious client demo environment,
+- an internal pilot platform,
+- a pre-production backend foundation,
+- a customizable workforce operations core for further productization.
+
+It is already beyond a throwaway prototype. The application includes real authorization, migrations, audit logging, search, reporting, and deployment automation.
+
+For a full enterprise production rollout, the next layer would typically include:
+
+- managed database and cache services,
+- company SSO and identity federation,
+- finalized compliance and retention workflows,
+- managed observability and backup policies,
+- hardened HTTPS and domain routing,
+- scale testing under production traffic patterns.
+
+## Repository Layout
+
+```text
+workforceiq/                 Core Flask application
+workforceiq/api/             API routes
+workforceiq/services/        Business logic and reporting services
+workforceiq/security/        MFA support
+migrations/                  Alembic migration history
+scripts/                     Seed, backup, bootstrap, and deployment helpers
+infra/aws/                   Managed AWS infrastructure path
+infra/aws-free/              Low-cost AWS single-host deployment path
+docs/                        Deployment and operations notes
+tests/                       Test suite
+```
+
+## For Prospective Clients
+
+If you are reviewing this project as a potential internal platform or as the base for a client deployment, the main point is straightforward:
+
+WorkforceIQ is not just an employee directory. It is a backend platform for workforce operations, governed access, searchable records, and decision support.
+
+It is designed to give organizations a practical path away from disconnected HR tooling and toward a more controlled, analytics-ready operating model.
