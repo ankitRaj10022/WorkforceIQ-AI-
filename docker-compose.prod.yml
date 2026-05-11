@@ -31,7 +31,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: celery -A workforceiq.celery_app.celery worker --loglevel=info
+    command: sh -c "celery -A workforceiq.celery_app.celery worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-1}"
 
 volumes:
   redis_data:
