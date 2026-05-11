@@ -17,3 +17,9 @@ htmlcov/
 bandit-report.json
 backups/
 cloud/compose/.env.cloud
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+*.pem
