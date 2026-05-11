@@ -101,9 +101,14 @@ class UserSession(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.String(64), db.ForeignKey("organizations.id"), nullable=False, default="org-demo", index=True)
+    session_uuid = db.Column(db.String(36), nullable=False, unique=True, index=True)
     user_id = db.Column(db.String(32), nullable=False, index=True)
     role_id = db.Column(db.Integer, db.ForeignKey("rbac_roles.id"), nullable=False, index=True)
     ip_address = db.Column(db.String(64), nullable=True)
+    refresh_token_jti = db.Column(db.String(36), nullable=True, unique=True, index=True)
+    refresh_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    revoked_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    revoked_reason = db.Column(db.String(128), nullable=True)
     login_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     last_active = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
 

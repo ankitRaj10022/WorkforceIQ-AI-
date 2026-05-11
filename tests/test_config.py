@@ -41,3 +41,15 @@ def test_production_accepts_strong_runtime_config(monkeypatch):
 
     assert app.config["ENABLE_DEV_AUTH"] is False
     assert app.config["SQLALCHEMY_DATABASE_URI"].startswith("mysql+pymysql://")
+
+
+def test_production_rejects_shorter_refresh_token_lifetime(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "a" * 64)
+    monkeypatch.setenv("JWT_SECRET_KEY", "b" * 64)
+    monkeypatch.setenv("DATABASE_URL", "mysql+pymysql://user:pass@localhost:3306/workforceiq")
+    monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("JWT_ACCESS_TOKEN_EXPIRES", "3600")
+    monkeypatch.setenv("JWT_REFRESH_TOKEN_EXPIRES", "300")
+
+    with pytest.raises(RuntimeError, match="refresh tokens must live longer"):
+        create_app("production")

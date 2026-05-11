@@ -47,7 +47,7 @@ This codebase is not a pitch artifact. It contains working backend capabilities 
 | Capability area | What is implemented |
 |---|---|
 | Workforce records | Employees, departments, roles, reviews, sessions, organizations, compliance requests, audit logs, predictions |
-| Authentication | JWT login, development token flow, MFA setup and verification, persisted user accounts |
+| Authentication | JWT login, refresh-token rotation, session revocation, development token flow, MFA setup and verification, persisted user accounts |
 | Authorization | Role-aware access control for employee views, reports, and audit surfaces |
 | Reporting | Employee profile summary, department health check, attrition risk reporting |
 | Search | SQL-based employee search with optional Elasticsearch integration path |
@@ -124,6 +124,8 @@ Primary endpoints currently exposed:
 - `GET /api/health`
 - `POST /api/auth/token`
 - `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
 - `POST /api/auth/mfa/setup`
 - `POST /api/auth/mfa/verify`
 - `GET /api/employees/<employee_id>`
@@ -208,6 +210,7 @@ It is beyond a throwaway prototype, but it is not yet the finished end-state of 
 Already in place:
 
 - authentication and authorization,
+- session-bound refresh token rotation and logout revocation,
 - migrations,
 - reporting and search,
 - auditability,

@@ -38,6 +38,7 @@ The root [compose.yaml](../compose.yaml) now mirrors the development stack, so `
 Required production settings:
 - `WORKFORCEIQ_CONFIG=production`
 - Strong `SECRET_KEY` and `JWT_SECRET_KEY`
+- `JWT_REFRESH_TOKEN_EXPIRES` longer than `JWT_ACCESS_TOKEN_EXPIRES`
 - MySQL `DATABASE_URL`
 - `ENABLE_DEV_AUTH=false`
 - Redis URL for Celery and rate limiting

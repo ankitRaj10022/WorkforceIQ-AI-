@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask, g, jsonify, request
 from flask_jwt_extended.exceptions import JWTExtendedException
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 
 from workforceiq.api.routes import api_bp
@@ -14,6 +15,7 @@ from workforceiq.errors import ApiError
 from workforceiq.extensions import db, jwt, migrate
 from workforceiq.logging_config import configure_logging, register_request_logging
 from workforceiq.maintenance import export_database_backup
+from workforceiq.models import UserSession
 from workforceiq.rate_limit import RateLimiter, rate_limit_key_from_request
 
 load_dotenv()
@@ -34,6 +36,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_error_handlers(app)
     register_request_guards(app)
+    register_jwt_callbacks(app)
     register_security_headers(app)
     register_request_logging(app)
     register_cli_commands(app)
@@ -109,6 +112,38 @@ def register_request_guards(app: Flask) -> None:
             response.headers["X-RateLimit-Remaining"] = str(result.remaining)
             return response
         return None
+
+
+def register_jwt_callbacks(app: Flask) -> None:
+    @jwt.token_in_blocklist_loader
+    def is_token_revoked(_jwt_header, jwt_payload: dict) -> bool:
+        session_id = jwt_payload.get("session_id")
+        if not session_id:
+            return False
+
+        session = db.session.execute(
+            select(UserSession)
+            .where(UserSession.session_uuid == session_id)
+            .limit(1)
+        ).scalar_one_or_none()
+        if session is None or session.revoked_at is not None:
+            return True
+
+        if jwt_payload.get("type") == "refresh":
+            return session.refresh_token_jti != jwt_payload.get("jti")
+        return False
+
+    @jwt.revoked_token_loader
+    def revoked_token_response(_jwt_header, _jwt_payload):
+        return jsonify({"error": "Token has been revoked."}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_response(message: str):
+        return jsonify({"error": message}), 401
+
+    @jwt.unauthorized_loader
+    def unauthorized_token_response(message: str):
+        return jsonify({"error": message}), 401
 
 
 def register_security_headers(app: Flask) -> None:

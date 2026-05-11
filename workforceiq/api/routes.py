@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from flask import Blueprint, current_app, jsonify, request
-from flask_jwt_extended import create_access_token, jwt_required
+from flask_jwt_extended import create_access_token, get_jwt, jwt_required
 from sqlalchemy import select
 
 from workforceiq.auth import authorize_audit_log_read, build_request_context, resolve_dev_identity
@@ -14,7 +14,13 @@ from workforceiq.services import (
     generate_department_health_check,
     update_employee,
 )
-from workforceiq.services.authentication import login_user, setup_mfa, verify_mfa_setup
+from workforceiq.services.authentication import (
+    login_user,
+    logout_user_session,
+    refresh_user_session,
+    setup_mfa,
+    verify_mfa_setup,
+)
 from workforceiq.services.compliance import create_compliance_request, list_compliance_requests
 from workforceiq.services.search import search_employees
 from workforceiq.utils.time import to_utc_iso, utc_now
@@ -79,6 +85,20 @@ def issue_dev_token():
 def login():
     payload = request.get_json(silent=True) or {}
     return jsonify(login_user(payload))
+
+
+@api_bp.post("/auth/refresh")
+@jwt_required(refresh=True)
+def refresh():
+    context = build_request_context()
+    return jsonify(refresh_user_session(context, get_jwt()))
+
+
+@api_bp.post("/auth/logout")
+@jwt_required(verify_type=False)
+def logout():
+    context = build_request_context()
+    return jsonify(logout_user_session(context, get_jwt()))
 
 
 @api_bp.post("/auth/mfa/setup")

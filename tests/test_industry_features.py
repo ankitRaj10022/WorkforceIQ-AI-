@@ -25,8 +25,12 @@ def test_real_login_creates_session_and_audit_log(client, app):
     body = response.get_json()
     assert body["user"]["role"] == "HR_MANAGER"
     assert body["access_token"]
+    assert body["refresh_token"]
+    assert body["session"]["session_id"]
     with app.app_context():
-        assert UserSession.query.count() == 1
+        session = UserSession.query.one()
+        assert session.session_uuid == body["session"]["session_id"]
+        assert session.refresh_token_jti is not None
         assert AuditLog.query.filter_by(action="LOGIN", target_entity="user_accounts").count() == 1
 
 
@@ -94,6 +98,54 @@ def test_mfa_setup_and_verify_flow(client):
     assert with_code_login.status_code == 200
 
 
+def test_refresh_token_rotation_rejects_reuse(client, app):
+    login = client.post(
+        "/api/auth/login",
+        json={
+            "organization_id": "org-demo",
+            "email": "hr@example.com",
+            "password": "CorrectHorseBatteryStaple!23",
+        },
+    )
+    refresh_token = login.get_json()["refresh_token"]
+
+    rotated = client.post("/api/auth/refresh", headers=auth_header(refresh_token))
+    reused = client.post("/api/auth/refresh", headers=auth_header(refresh_token))
+
+    assert rotated.status_code == 200
+    assert rotated.get_json()["refresh_token"] != refresh_token
+    assert reused.status_code == 401
+    assert "revoked" in reused.get_json()["error"].lower()
+    with app.app_context():
+        session = UserSession.query.one()
+        assert session.refresh_token_jti is not None
+        assert AuditLog.query.filter_by(target_entity="user_sessions").count() == 1
+
+
+def test_logout_revokes_session_and_access_token(client, app):
+    login = client.post(
+        "/api/auth/login",
+        json={
+            "organization_id": "org-demo",
+            "email": "hr@example.com",
+            "password": "CorrectHorseBatteryStaple!23",
+        },
+    )
+    access_token = login.get_json()["access_token"]
+
+    logout = client.post("/api/auth/logout", headers=auth_header(access_token))
+    revoked_access = client.get("/api/employees/EMP-0841", headers=auth_header(access_token))
+
+    assert logout.status_code == 200
+    assert revoked_access.status_code == 401
+    assert "revoked" in revoked_access.get_json()["error"].lower()
+    with app.app_context():
+        session = UserSession.query.one()
+        assert session.revoked_at is not None
+        assert session.refresh_token_jti is None
+        assert AuditLog.query.filter_by(action="LOGOUT", target_entity="user_sessions").count() == 1
+
+
 def test_employee_search_is_tenant_and_role_scoped(client, token_for):
     hr_token = token_for("hr-manager-1")
     employee_token = token_for("employee-priya")
@@ -148,12 +200,23 @@ def test_rate_limiter_memory_backend_and_jwt_claim_key(app, client):
 def test_backup_export_redacts_account_secrets(app, tmp_path):
     output = tmp_path / "backup.json"
     with app.app_context():
+        session = UserSession(
+            organization_id="org-demo",
+            session_uuid="11111111-1111-1111-1111-111111111111",
+            user_id="1",
+            role_id=2,
+            refresh_token_jti="22222222-2222-2222-2222-222222222222",
+        )
+        db.session.add(session)
+        db.session.commit()
+    with app.app_context():
         result = export_database_backup(output)
 
     content = output.read_text(encoding="utf-8")
     assert result["tables"]["employees"] == 3
     assert "[REDACTED]" in content
     assert "CorrectHorseBatteryStaple" not in content
+    assert "22222222-2222-2222-2222-222222222222" not in content
 
 
 def test_celery_task_functions_run_inside_app_context(app):

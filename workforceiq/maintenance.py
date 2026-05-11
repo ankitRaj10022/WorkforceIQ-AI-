@@ -65,4 +65,6 @@ def _serialize_model(row) -> dict:
     if row.__tablename__ == "user_accounts":
         data["password_hash"] = REDACTION_MARKER
         data["mfa_secret"] = REDACTION_MARKER if data.get("mfa_secret") else None
+    if row.__tablename__ == "user_sessions":
+        data["refresh_token_jti"] = REDACTION_MARKER if data.get("refresh_token_jti") else None
     return data

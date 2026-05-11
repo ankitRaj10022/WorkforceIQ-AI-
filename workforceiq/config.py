@@ -62,6 +62,7 @@ class BaseConfig:
     # Development fallback only; production validation rejects placeholder secrets.
     JWT_SECRET_KEY = "dev-jwt-secret-key-change-me-please-123456"  # nosec B105
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=8)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     REDIS_URL = "redis://localhost:6379/0"
     CELERY_BROKER_URL = REDIS_URL
     CELERY_RESULT_BACKEND = REDIS_URL
@@ -137,6 +138,11 @@ def apply_runtime_settings(app) -> None:
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=int(jwt_exp_seconds))
     else:
         app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=_int_env("JWT_ACCESS_TOKEN_HOURS", 8))
+    refresh_exp_seconds = os.getenv("JWT_REFRESH_TOKEN_EXPIRES")
+    if refresh_exp_seconds is not None:
+        app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(seconds=int(refresh_exp_seconds))
+    else:
+        app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=_int_env("JWT_REFRESH_TOKEN_DAYS", 30))
     app.config["REDIS_URL"] = os.getenv("REDIS_URL", app.config["REDIS_URL"])
     app.config["CELERY_BROKER_URL"] = os.getenv("CELERY_BROKER_URL", app.config["CELERY_BROKER_URL"])
     app.config["CELERY_RESULT_BACKEND"] = os.getenv("CELERY_RESULT_BACKEND", app.config["CELERY_RESULT_BACKEND"])
@@ -197,3 +203,6 @@ def validate_runtime_config(app) -> None:
 
     if app.config["RATE_LIMIT_BACKEND"] not in {"auto", "redis"}:
         raise RuntimeError("Production rate limiting must use Redis or auto Redis discovery.")
+
+    if app.config["JWT_REFRESH_TOKEN_EXPIRES"] <= app.config["JWT_ACCESS_TOKEN_EXPIRES"]:
+        raise RuntimeError("Production refresh tokens must live longer than access tokens.")

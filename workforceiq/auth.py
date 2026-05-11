@@ -25,6 +25,7 @@ class RequestContext:
     organization_id: str
     department_id: int | None = None
     employee_id: str | None = None
+    session_id: str | None = None
 
 
 def parse_role(role_name: str | None) -> RoleName:
@@ -48,6 +49,7 @@ def build_request_context() -> RequestContext:
         organization_id=str(claims.get("organization_id") or current_app.config["DEFAULT_ORGANIZATION_ID"]),
         department_id=claims.get("department_id"),
         employee_id=claims.get("employee_id"),
+        session_id=claims.get("session_id"),
     )
 
 

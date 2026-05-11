@@ -24,7 +24,7 @@ Required before staging:
 
 Required before real customer data:
 - Run Alembic migrations with `flask db upgrade`; never use `db.create_all()` against production.
-- Use `/api/auth/login` with persisted `user_accounts`, MFA, and account lockout; keep `/api/auth/token` disabled in production.
+- Use `/api/auth/login`, `/api/auth/refresh`, and `/api/auth/logout` with persisted `user_accounts`, MFA, and account lockout; keep `/api/auth/token` disabled in production.
 - Use Redis-backed rate limiting with tenant-aware keys; memory fallback is development-only.
 - Use tenant-scoped employee search; set `ELASTICSEARCH_URL` to enable the Elasticsearch backend.
 - Run Celery workers for ML prediction refresh, search indexing, and scheduled report hooks.
@@ -33,7 +33,7 @@ Required before real customer data:
 - Use `/api/compliance/requests` for data export, deletion, and rectification workflows.
 
 Remaining hardening before a paid enterprise launch:
-- Add refresh-token rotation and external SSO/SAML/OIDC.
+- Add external SSO/SAML/OIDC.
 - Add real ML model artifacts and SHAP explanations instead of deterministic task placeholders.
 - Add full restore automation, immutable backup storage, and disaster recovery RTO/RPO targets.
 - Add organization provisioning, billing, and tenant admin screens.
