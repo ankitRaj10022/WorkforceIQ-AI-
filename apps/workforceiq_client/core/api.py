@@ -13,7 +13,10 @@ class ApiClientError(RuntimeError):
 
     def __post_init__(self) -> None:
         message = self.body.get("error") if isinstance(self.body, dict) else None
-        super().__init__(str(message or f"WorkforceIQ API request failed with status {self.status_code}."))
+        RuntimeError.__init__(
+            self,
+            str(message or f"WorkforceIQ API request failed with status {self.status_code}."),
+        )
 
 
 class WorkforceApiClient:
