@@ -91,6 +91,7 @@ def main() -> int:
     parser.add_argument("--mfa-code")
     parser.add_argument("--employee-id", default="EMP-0841")
     parser.add_argument("--require-auth", action="store_true")
+    parser.add_argument("--require-ready", action="store_true")
     args = parser.parse_args()
 
     checks: list[str] = []
@@ -99,6 +100,14 @@ def main() -> int:
     if status != 200 or health.get("status") != "ok":
         print("\n".join(checks))
         return 1
+
+    if args.require_ready:
+        status, readiness = request_json(f"{args.base_url}/api/health/ready")
+        checks.append(f"ready={status}")
+        if status != 200 or readiness.get("status") != "ready":
+            print("\n".join(checks))
+            print(json.dumps(readiness, indent=2))
+            return 1
 
     if args.require_auth:
         auth_result = acquire_access_token(

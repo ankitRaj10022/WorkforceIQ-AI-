@@ -47,7 +47,7 @@ This codebase is not a pitch artifact. It contains working backend capabilities 
 | Capability area | What is implemented |
 |---|---|
 | Workforce records | Employees, departments, roles, reviews, sessions, organizations, compliance requests, audit logs, predictions |
-| Authentication | JWT login, refresh-token rotation, session revocation, development token flow, MFA setup and verification, persisted user accounts |
+| Authentication | JWT login, OIDC token exchange, refresh-token rotation, session revocation, development token flow, MFA setup and verification, persisted user accounts |
 | Authorization | Role-aware access control for employee views, reports, and audit surfaces |
 | Reporting | Employee profile summary, department health check, attrition risk reporting |
 | Search | SQL-based employee search with optional Elasticsearch integration path |
@@ -122,8 +122,11 @@ Primary entities represented in the current schema:
 Primary endpoints currently exposed:
 
 - `GET /api/health`
+- `GET /api/health/live`
+- `GET /api/health/ready`
 - `POST /api/auth/token`
 - `POST /api/auth/login`
+- `POST /api/auth/sso/exchange`
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `POST /api/auth/mfa/setup`
@@ -147,6 +150,7 @@ For technical diligence, the useful signal in this repository is that it already
 - Authentication and RBAC built into the application layer
 - Audit logging and compliance-aware flows
 - Test coverage across core behavior
+- Dependency-level readiness checks and backup verification utilities
 - AWS deployment assets for both low-cost and more managed operating models
 
 This makes the repo suitable for:
@@ -210,6 +214,7 @@ It is beyond a throwaway prototype, but it is not yet the finished end-state of 
 Already in place:
 
 - authentication and authorization,
+- enterprise OIDC token exchange on top of local JWT sessions,
 - session-bound refresh token rotation and logout revocation,
 - migrations,
 - reporting and search,
@@ -220,7 +225,7 @@ Already in place:
 
 Typical next steps for full enterprise rollout:
 
-- SSO and identity federation
+- broader identity federation such as SAML, SCIM, and group-to-role mapping
 - managed data services and backup policy enforcement
 - hardened domain and HTTPS routing
 - centralized observability and alerting

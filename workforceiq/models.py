@@ -175,12 +175,20 @@ class UserAccount(db.Model):
     __tablename__ = "user_accounts"
     __table_args__ = (
         db.UniqueConstraint("organization_id", "email", name="uq_user_accounts_org_email"),
+        db.UniqueConstraint(
+            "organization_id",
+            "auth_provider",
+            "external_subject",
+            name="uq_user_accounts_org_provider_subject",
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.String(64), db.ForeignKey("organizations.id"), nullable=False, default="org-demo", index=True)
     email = db.Column(db.String(255), nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    auth_provider = db.Column(db.String(32), nullable=False, default="local", index=True)
+    external_subject = db.Column(db.String(255), nullable=True, index=True)
     role = db.Column(db.String(50), nullable=False, index=True)
     department_id = db.Column(db.Integer, db.ForeignKey("departments.id"), nullable=True, index=True)
     employee_id = db.Column(db.String(32), db.ForeignKey("employees.id"), nullable=True, index=True)
@@ -189,6 +197,7 @@ class UserAccount(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
     failed_login_count = db.Column(db.Integer, nullable=False, default=0)
     locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_login_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
 

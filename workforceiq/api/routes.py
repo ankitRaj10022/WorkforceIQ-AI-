@@ -15,6 +15,7 @@ from workforceiq.services import (
     update_employee,
 )
 from workforceiq.services.authentication import (
+    exchange_oidc_token,
     login_user,
     logout_user_session,
     refresh_user_session,
@@ -22,6 +23,7 @@ from workforceiq.services.authentication import (
     verify_mfa_setup,
 )
 from workforceiq.services.compliance import create_compliance_request, list_compliance_requests
+from workforceiq.services.operations import generate_liveness_report, generate_readiness_report
 from workforceiq.services.search import search_employees
 from workforceiq.utils.time import to_utc_iso, utc_now
 
@@ -40,6 +42,17 @@ def health_check():
             "environment": current_app.config["ENV_NAME"],
         }
     )
+
+
+@api_bp.get("/health/live")
+def live_health_check():
+    return jsonify(generate_liveness_report())
+
+
+@api_bp.get("/health/ready")
+def readiness_health_check():
+    payload, status_code = generate_readiness_report()
+    return jsonify(payload), status_code
 
 
 @api_bp.post("/auth/token")
@@ -85,6 +98,12 @@ def issue_dev_token():
 def login():
     payload = request.get_json(silent=True) or {}
     return jsonify(login_user(payload))
+
+
+@api_bp.post("/auth/sso/exchange")
+def sso_exchange():
+    payload = request.get_json(silent=True) or {}
+    return jsonify(exchange_oidc_token(payload))
 
 
 @api_bp.post("/auth/refresh")

@@ -55,6 +55,54 @@ def export_database_backup(output_path: Path) -> dict:
     }
 
 
+def verify_database_backup(backup_path: Path) -> dict:
+    try:
+        payload = json.loads(backup_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"Backup file does not exist: {backup_path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Backup file is not valid JSON: {backup_path}") from exc
+    errors: list[str] = []
+
+    if payload.get("format") != "workforceiq-json-backup-v1":
+        errors.append("Backup format marker is invalid.")
+    if not isinstance(payload.get("generated_at"), str) or not payload["generated_at"]:
+        errors.append("Backup is missing generated_at.")
+
+    tables = payload.get("tables")
+    if not isinstance(tables, dict):
+        errors.append("Backup tables payload is invalid.")
+        tables = {}
+
+    expected_tables = {model.__tablename__ for model in BACKUP_MODELS}
+    missing_tables = sorted(expected_tables - set(tables))
+    if missing_tables:
+        errors.append(f"Backup is missing tables: {', '.join(missing_tables)}.")
+
+    for account in tables.get("user_accounts", []):
+        if account.get("password_hash") != REDACTION_MARKER:
+            errors.append("user_accounts.password_hash is not redacted.")
+            break
+        if account.get("mfa_secret") not in {None, REDACTION_MARKER}:
+            errors.append("user_accounts.mfa_secret is not redacted.")
+            break
+
+    for session in tables.get("user_sessions", []):
+        if session.get("refresh_token_jti") not in {None, REDACTION_MARKER}:
+            errors.append("user_sessions.refresh_token_jti is not redacted.")
+            break
+
+    if errors:
+        raise ValueError(" ".join(errors))
+
+    return {
+        "backup_path": str(backup_path),
+        "format": payload["format"],
+        "generated_at": payload["generated_at"],
+        "tables": {table: len(rows) for table, rows in tables.items()},
+    }
+
+
 def _serialize_model(row) -> dict:
     data = {}
     for column in row.__table__.columns:

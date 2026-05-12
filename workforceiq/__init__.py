@@ -14,7 +14,7 @@ from workforceiq.config import apply_runtime_settings, config_by_name, resolve_c
 from workforceiq.errors import ApiError
 from workforceiq.extensions import db, jwt, migrate
 from workforceiq.logging_config import configure_logging, register_request_logging
-from workforceiq.maintenance import export_database_backup
+from workforceiq.maintenance import export_database_backup, verify_database_backup
 from workforceiq.models import UserSession
 from workforceiq.rate_limit import RateLimiter, rate_limit_key_from_request
 
@@ -64,6 +64,19 @@ def register_error_handlers(app: Flask) -> None:
     @app.errorhandler(OperationalError)
     def handle_operational_error(_error: OperationalError):
         db.session.rollback()
+        if _is_uninitialized_local_database_error(app, _error):
+            return (
+                jsonify(
+                    {
+                        "error": (
+                            "Local development database is not initialized. "
+                            "Run `python scripts/seed_demo_data.py` to create the demo schema and records, "
+                            "then retry the request."
+                        )
+                    }
+                ),
+                503,
+            )
         return (
             jsonify(
                 {
@@ -182,3 +195,19 @@ def register_cli_commands(app: Flask) -> None:
         with app.app_context():
             result = export_database_backup(output)
         print(result)
+
+    @app.cli.command("verify-backup")
+    def verify_backup_command():
+        backup_path = Path(app.config["BACKUP_DIRECTORY"]) / "workforceiq-backup.json"
+        result = verify_database_backup(backup_path)
+        print(result)
+
+
+def _is_uninitialized_local_database_error(app: Flask, error: OperationalError) -> bool:
+    if app.config["ENV_NAME"] == "production":
+        return False
+    database_uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", "")).lower()
+    if not database_uri.startswith("sqlite"):
+        return False
+    message = str(getattr(error, "orig", error)).lower()
+    return "no such table" in message

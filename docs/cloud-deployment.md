@@ -42,6 +42,7 @@ Set these values in `.env.cloud`:
 - `ACME_EMAIL`: email for TLS certificate registration.
 - `CORS_ORIGINS`: your frontend origin.
 - `WORKFORCEIQ_IMAGE`: image name, for example `ghcr.io/<owner>/<repo>/workforceiq-api:latest`.
+- If using enterprise OIDC SSO: `OIDC_ENABLED=true`, plus `OIDC_ISSUER`, `OIDC_AUDIENCE`, and either `OIDC_JWKS_URI` or inline `OIDC_JWKS_JSON`.
 
 Preflight against the real cloud env file before first deploy:
 
@@ -55,6 +56,7 @@ python scripts/cloud_preflight.py /opt/workforceiq/.env.cloud
 docker compose -f docker-compose.cloud.yml --env-file .env.cloud up -d
 docker compose -f docker-compose.cloud.yml --env-file .env.cloud ps
 curl -fsS https://$APP_DOMAIN/api/health
+curl -fsS https://$APP_DOMAIN/api/health/ready
 ```
 
 For an authenticated smoke test in a production-like environment where dev auth is disabled:
@@ -62,6 +64,7 @@ For an authenticated smoke test in a production-like environment where dev auth 
 ```bash
 python scripts/smoke_test.py \
   --base-url https://$APP_DOMAIN \
+  --require-ready \
   --require-auth \
   --organization-id org-demo \
   --login-email hr@example.com \

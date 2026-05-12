@@ -74,6 +74,13 @@ class BaseConfig:
     RATE_LIMIT_BACKEND = "auto"
     AUTH_LOCKOUT_THRESHOLD = 5
     AUTH_LOCKOUT_MINUTES = 15
+    OIDC_ENABLED = False
+    OIDC_ISSUER = ""
+    OIDC_AUDIENCE = ""
+    OIDC_JWKS_URI = ""
+    OIDC_JWKS_JSON = ""
+    OIDC_CLOCK_SKEW_SECONDS = 60
+    OIDC_REQUIRE_VERIFIED_EMAIL = True
     ML_STALE_DAYS = 30
     ELASTICSEARCH_URL = ""
     BACKUP_DIRECTORY = "backups"
@@ -168,6 +175,19 @@ def apply_runtime_settings(app) -> None:
         _int_env("AUTH_LOCKOUT_MINUTES", app.config["AUTH_LOCKOUT_MINUTES"]),
         1,
     )
+    app.config["OIDC_ENABLED"] = _bool_env("OIDC_ENABLED", app.config["OIDC_ENABLED"])
+    app.config["OIDC_ISSUER"] = os.getenv("OIDC_ISSUER", app.config["OIDC_ISSUER"]).strip()
+    app.config["OIDC_AUDIENCE"] = os.getenv("OIDC_AUDIENCE", app.config["OIDC_AUDIENCE"]).strip()
+    app.config["OIDC_JWKS_URI"] = os.getenv("OIDC_JWKS_URI", app.config["OIDC_JWKS_URI"]).strip()
+    app.config["OIDC_JWKS_JSON"] = os.getenv("OIDC_JWKS_JSON", app.config["OIDC_JWKS_JSON"]).strip()
+    app.config["OIDC_CLOCK_SKEW_SECONDS"] = max(
+        _int_env("OIDC_CLOCK_SKEW_SECONDS", app.config["OIDC_CLOCK_SKEW_SECONDS"]),
+        0,
+    )
+    app.config["OIDC_REQUIRE_VERIFIED_EMAIL"] = _bool_env(
+        "OIDC_REQUIRE_VERIFIED_EMAIL",
+        app.config["OIDC_REQUIRE_VERIFIED_EMAIL"],
+    )
     app.config["ELASTICSEARCH_URL"] = os.getenv("ELASTICSEARCH_URL", app.config["ELASTICSEARCH_URL"])
     app.config["BACKUP_DIRECTORY"] = os.getenv("BACKUP_DIRECTORY", app.config["BACKUP_DIRECTORY"])
     app.config["STRUCTURED_LOGS"] = _bool_env("STRUCTURED_LOGS", app.config["STRUCTURED_LOGS"])
@@ -206,3 +226,11 @@ def validate_runtime_config(app) -> None:
 
     if app.config["JWT_REFRESH_TOKEN_EXPIRES"] <= app.config["JWT_ACCESS_TOKEN_EXPIRES"]:
         raise RuntimeError("Production refresh tokens must live longer than access tokens.")
+
+    if app.config["OIDC_ENABLED"]:
+        if not app.config["OIDC_ISSUER"]:
+            raise RuntimeError("OIDC_ISSUER must be configured when OIDC SSO is enabled.")
+        if not app.config["OIDC_AUDIENCE"]:
+            raise RuntimeError("OIDC_AUDIENCE must be configured when OIDC SSO is enabled.")
+        if not (app.config["OIDC_JWKS_URI"] or app.config["OIDC_JWKS_JSON"]):
+            raise RuntimeError("OIDC_JWKS_URI or OIDC_JWKS_JSON must be configured when OIDC SSO is enabled.")

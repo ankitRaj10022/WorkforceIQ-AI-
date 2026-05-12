@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import workforceiq.api.routes as routes_module
 from tests.conftest import auth_header
+from workforceiq import create_app
 from workforceiq.extensions import db
 from workforceiq.models import AuditLog, Employee
 
@@ -13,6 +15,63 @@ def test_health_endpoint_returns_security_headers(client):
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["X-Request-ID"]
+
+
+def test_live_health_endpoint_returns_liveness_shape(client):
+    response = client.get("/api/health/live")
+
+    assert response.status_code == 200
+    assert response.get_json()["kind"] == "liveness"
+    assert response.get_json()["status"] == "ok"
+
+
+def test_readiness_endpoint_reports_dependency_status(client):
+    response = client.get("/api/health/ready")
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["kind"] == "readiness"
+    assert body["status"] == "ready"
+    assert body["checks"]["database"]["status"] == "ready"
+    assert body["checks"]["redis"]["status"] == "skipped"
+
+
+def test_readiness_endpoint_returns_503_on_dependency_failure(client, monkeypatch):
+    monkeypatch.setattr(
+        routes_module,
+        "generate_readiness_report",
+        lambda: (
+            {
+                "service": "WorkforceIQ AI",
+                "status": "not_ready",
+                "kind": "readiness",
+                "checks": {"database": {"required": True, "status": "failed"}},
+            },
+            503,
+        ),
+    )
+
+    response = client.get("/api/health/ready")
+
+    assert response.status_code == 503
+    assert response.get_json()["status"] == "not_ready"
+
+
+def test_login_returns_bootstrap_hint_when_local_database_is_uninitialized():
+    uninitialized_app = create_app("testing")
+    client = uninitialized_app.test_client()
+
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "organization_id": "org-demo",
+            "email": "hr@example.com",
+            "password": "CorrectHorseBatteryStaple!23",
+        },
+    )
+
+    assert response.status_code == 503
+    assert "Local development database is not initialized" in response.get_json()["error"]
 
 
 def test_dev_token_rejects_role_escalation(client):

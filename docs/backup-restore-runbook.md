@@ -32,6 +32,7 @@ After restore:
 
 ```powershell
 python scripts\backup_database.py
+python scripts\verify_backup.py backups\workforceiq-backup-YYYYMMDDTHHMMSSZ.json
 ```
 
-This export redacts password hashes and MFA secrets, so it is safe for internal audit review but not sufficient for full disaster recovery.
+This export redacts password hashes, MFA secrets, and refresh-token session identifiers, so it is safe for internal audit review but not sufficient for full disaster recovery.

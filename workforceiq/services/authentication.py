@@ -14,9 +14,13 @@ from workforceiq.errors import AccessDeniedError, NotFoundError, ValidationError
 from workforceiq.extensions import db
 from workforceiq.models import RbacRole, UserAccount, UserSession
 from workforceiq.security.mfa import generate_mfa_secret, provisioning_uri, verify_totp
+from workforceiq.security.oidc import verify_oidc_token
 from workforceiq.utils.time import ensure_utc_datetime, to_utc_iso, utc_now
 
 TOKEN_TYPE_BEARER = "Bearer"  # nosec B105
+AUTH_PROVIDER_LOCAL = "local"
+AUTH_PROVIDER_HYBRID = "hybrid"
+AUTH_PROVIDER_OIDC = "oidc"
 
 
 def login_user(payload: dict) -> dict:
@@ -38,6 +42,8 @@ def login_user(payload: dict) -> dict:
         raise AccessDeniedError("Access denied. Invalid email or password.")
     if not account.is_active:
         raise AccessDeniedError("Access denied. This account is inactive.")
+    if _auth_provider(account) == AUTH_PROVIDER_OIDC:
+        raise AccessDeniedError("Access denied. This account must sign in through enterprise SSO.")
 
     _reject_if_locked(account)
     if not check_password_hash(account.password_hash, password):
@@ -50,6 +56,7 @@ def login_user(payload: dict) -> dict:
 
     account.failed_login_count = 0
     account.locked_until = None
+    account.last_login_at = utc_now()
     role = parse_role(account.role)
     session = UserSession(
         organization_id=organization_id,
@@ -68,7 +75,10 @@ def login_user(payload: dict) -> dict:
         fields_changed=[],
         old_values={},
         new_values={},
-        extra_metadata={"auth_method": "password_mfa" if account.mfa_enabled else "password"},
+        extra_metadata={
+            "auth_method": "password_mfa" if account.mfa_enabled else "password",
+            "auth_provider": _auth_provider(account),
+        },
     )
     db.session.flush()
     tokens = _issue_session_tokens(account, role, session)
@@ -79,6 +89,67 @@ def login_user(payload: dict) -> dict:
         "refresh_token": tokens["refresh_token"],
         "token_type": TOKEN_TYPE_BEARER,
         "requires_mfa": account.mfa_enabled,
+        "session": _serialize_session(session),
+        "user": _serialize_account(account, role),
+    }
+
+
+def exchange_oidc_token(payload: dict) -> dict:
+    organization_id = str(payload.get("organization_id") or current_app.config["DEFAULT_ORGANIZATION_ID"])
+    claims = verify_oidc_token(payload.get("id_token"))
+    account = db.session.execute(
+        select(UserAccount)
+        .where(
+            UserAccount.email == claims["email"],
+            UserAccount.organization_id == organization_id,
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if account is None:
+        raise AccessDeniedError(
+            "Access denied. No WorkforceIQ account is provisioned for this enterprise identity."
+        )
+    if not account.is_active:
+        raise AccessDeniedError("Access denied. This account is inactive.")
+
+    _bind_or_validate_oidc_identity(account, claims)
+    account.failed_login_count = 0
+    account.locked_until = None
+    account.last_login_at = utc_now()
+    role = parse_role(account.role)
+    session = UserSession(
+        organization_id=organization_id,
+        session_uuid=str(uuid4()),
+        user_id=str(account.id),
+        role_id=_role_id_for(role),
+        ip_address=request.remote_addr,
+    )
+    db.session.add(session)
+    record_audit_log(
+        user_id=str(account.id),
+        organization_id=organization_id,
+        action="LOGIN",
+        target_entity="user_accounts",
+        target_id=str(account.id),
+        fields_changed=[],
+        old_values={},
+        new_values={},
+        extra_metadata={
+            "auth_method": "oidc",
+            "auth_provider": _auth_provider(account),
+            "issuer": claims["iss"],
+            "subject": claims["sub"],
+        },
+    )
+    db.session.flush()
+    tokens = _issue_session_tokens(account, role, session)
+    db.session.commit()
+
+    return {
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"],
+        "token_type": TOKEN_TYPE_BEARER,
+        "requires_mfa": False,
         "session": _serialize_session(session),
         "user": _serialize_account(account, role),
     }
@@ -298,6 +369,7 @@ def _serialize_account(account: UserAccount, role: RoleName) -> dict:
         "user_id": str(account.id),
         "organization_id": account.organization_id,
         "email": account.email,
+        "auth_provider": _auth_provider(account),
         "role": role.value,
         "department_id": account.department_id,
         "employee_id": account.employee_id,
@@ -334,3 +406,29 @@ def _role_id_for(role: RoleName) -> int:
 
 def _jwt_expiry_as_datetime(expiry: int | float) -> datetime:
     return datetime.fromtimestamp(float(expiry), UTC)
+
+
+def _bind_or_validate_oidc_identity(account: UserAccount, claims: dict) -> None:
+    subject = str(claims["sub"])
+    provider = _auth_provider(account)
+
+    if provider == AUTH_PROVIDER_LOCAL:
+        account.auth_provider = AUTH_PROVIDER_HYBRID
+        account.external_subject = subject
+        return
+
+    if provider in {AUTH_PROVIDER_HYBRID, AUTH_PROVIDER_OIDC}:
+        if account.external_subject is None:
+            account.external_subject = subject
+            return
+        if account.external_subject != subject:
+            raise AccessDeniedError(
+                "Access denied. The incoming enterprise identity does not match the account binding on record."
+            )
+        return
+
+    raise ValidationError(f"User account auth provider `{provider}` is not supported.")
+
+
+def _auth_provider(account: UserAccount) -> str:
+    return (account.auth_provider or AUTH_PROVIDER_LOCAL).strip().lower()

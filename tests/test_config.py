@@ -53,3 +53,18 @@ def test_production_rejects_shorter_refresh_token_lifetime(monkeypatch):
 
     with pytest.raises(RuntimeError, match="refresh tokens must live longer"):
         create_app("production")
+
+
+def test_production_rejects_incomplete_oidc_configuration(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "a" * 64)
+    monkeypatch.setenv("JWT_SECRET_KEY", "b" * 64)
+    monkeypatch.setenv("DATABASE_URL", "mysql+pymysql://user:pass@localhost:3306/workforceiq")
+    monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("OIDC_ENABLED", "true")
+    monkeypatch.delenv("OIDC_ISSUER", raising=False)
+    monkeypatch.delenv("OIDC_AUDIENCE", raising=False)
+    monkeypatch.delenv("OIDC_JWKS_URI", raising=False)
+    monkeypatch.delenv("OIDC_JWKS_JSON", raising=False)
+
+    with pytest.raises(RuntimeError, match="OIDC_ISSUER"):
+        create_app("production")

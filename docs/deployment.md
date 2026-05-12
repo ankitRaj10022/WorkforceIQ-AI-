@@ -43,6 +43,7 @@ Required production settings:
 - `ENABLE_DEV_AUTH=false`
 - Redis URL for Celery and rate limiting
 - `CORS_ORIGINS` set to approved frontend origins
+- If enterprise SSO is enabled: `OIDC_ISSUER`, `OIDC_AUDIENCE`, and either `OIDC_JWKS_URI` or `OIDC_JWKS_JSON`
 - Optional `ELASTICSEARCH_URL` for indexed employee search
 
 ```powershell
@@ -83,5 +84,6 @@ python scripts\backup_database.py
 
 ```powershell
 python scripts\smoke_test.py --base-url http://127.0.0.1:5000
-python scripts\smoke_test.py --base-url http://127.0.0.1:5000 --require-auth
+python scripts\smoke_test.py --base-url http://127.0.0.1:5000 --require-ready
+python scripts\smoke_test.py --base-url http://127.0.0.1:5000 --require-auth --require-ready
 ```

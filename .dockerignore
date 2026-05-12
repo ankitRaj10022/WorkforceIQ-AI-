@@ -12,6 +12,10 @@
 **/.env
 **/.git
 **/.gitignore
+**/.pytest_cache
+**/.ruff_cache
+**/.terraform
+**/.terraform.lock.hcl
 **/.project
 **/.settings
 **/.toolstarget
@@ -30,5 +34,11 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
+.github
+cloud
+coverage.xml
+docs
+infra
+tests
 LICENSE
 README.md
