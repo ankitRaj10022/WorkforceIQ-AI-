@@ -23,8 +23,81 @@ variable "app_domain" {
 }
 
 variable "cors_origins" {
-  description = "Comma-separated list of approved frontend origins."
+  description = "Comma-separated list of approved frontend origins. Retained for backward compatibility."
   type        = string
+  default     = ""
+}
+
+variable "frontend_base_url" {
+  description = "Primary frontend URL, for example https://app.example.com."
+  type        = string
+  default     = ""
+}
+
+variable "frontend_origins" {
+  description = "Explicit list of approved frontend origins. When set, this overrides cors_origins."
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_cognito" {
+  description = "Whether to provision AWS Cognito for frontend sign-in and backend OIDC token exchange."
+  type        = bool
+  default     = false
+}
+
+variable "cognito_domain_prefix" {
+  description = "Hosted UI domain prefix for Cognito. Leave empty to derive one from the project and environment names."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_callback_urls" {
+  description = "Explicit frontend callback URLs for Cognito. If empty and frontend_base_url is set, /auth/callback is used."
+  type        = list(string)
+  default     = []
+}
+
+variable "cognito_logout_urls" {
+  description = "Explicit frontend logout URLs for Cognito. If empty and frontend_base_url is set, the frontend_base_url is used."
+  type        = list(string)
+  default     = []
+}
+
+variable "cognito_generate_client_secret" {
+  description = "Whether the Cognito app client should have a client secret. Keep false for browser-based frontends."
+  type        = bool
+  default     = false
+}
+
+variable "cognito_self_signup_enabled" {
+  description = "Whether Cognito should allow end users to sign up directly with company email."
+  type        = bool
+  default     = true
+}
+
+variable "cognito_mfa_configuration" {
+  description = "Cognito MFA mode: OFF, OPTIONAL, or ON."
+  type        = string
+  default     = "OPTIONAL"
+}
+
+variable "cognito_auto_provision_users" {
+  description = "Whether WorkforceIQ should auto-provision a local user record when Cognito-authenticated users sign in for the first time."
+  type        = bool
+  default     = true
+}
+
+variable "cognito_auto_provision_default_role" {
+  description = "Default WorkforceIQ RBAC role assigned during Cognito auto-provisioning."
+  type        = string
+  default     = "EMPLOYEE"
+}
+
+variable "cognito_allowed_signup_email_domains" {
+  description = "Approved company email domains for Cognito sign-up and backend auto-provisioning."
+  type        = list(string)
+  default     = []
 }
 
 variable "acm_certificate_arn" {

@@ -68,3 +68,22 @@ def test_production_rejects_incomplete_oidc_configuration(monkeypatch):
 
     with pytest.raises(RuntimeError, match="OIDC_ISSUER"):
         create_app("production")
+
+
+def test_production_rejects_oidc_auto_provision_without_domains(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "a" * 64)
+    monkeypatch.setenv("JWT_SECRET_KEY", "b" * 64)
+    monkeypatch.setenv("DATABASE_URL", "mysql+pymysql://user:pass@localhost:3306/workforceiq")
+    monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
+    monkeypatch.setenv("OIDC_ENABLED", "true")
+    monkeypatch.setenv("OIDC_ISSUER", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_example")
+    monkeypatch.setenv("OIDC_AUDIENCE", "frontend-client-id")
+    monkeypatch.setenv(
+        "OIDC_JWKS_URI",
+        "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_example/.well-known/jwks.json",
+    )
+    monkeypatch.setenv("OIDC_AUTO_PROVISION_USERS", "true")
+    monkeypatch.delenv("OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS", raising=False)
+
+    with pytest.raises(RuntimeError, match="OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS"):
+        create_app("production")

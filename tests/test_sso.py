@@ -57,6 +57,56 @@ def test_oidc_exchange_rejects_unverified_email_when_required(client, app):
     assert "email must be verified" in response.get_json()["error"]
 
 
+def test_oidc_exchange_auto_provisions_new_company_user(client, app):
+    private_key = _configure_oidc(app)
+    app.config.update(
+        OIDC_AUTO_PROVISION_USERS=True,
+        OIDC_AUTO_PROVISION_DEFAULT_ROLE="EMPLOYEE",
+        OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS=["company.example"],
+    )
+    token = _build_oidc_token(
+        private_key,
+        email="new.joiner@company.example",
+        subject="oidc-user-789",
+        issuer=app.config["OIDC_ISSUER"],
+        audience=app.config["OIDC_AUDIENCE"],
+    )
+
+    response = client.post("/api/auth/sso/exchange", json={"id_token": token})
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["user"]["email"] == "new.joiner@company.example"
+    assert body["user"]["role"] == "EMPLOYEE"
+    assert body["user"]["auth_provider"] == "oidc"
+
+    with app.app_context():
+        account = db.session.query(UserAccount).filter_by(email="new.joiner@company.example").one()
+        assert account.external_subject == "oidc-user-789"
+        assert account.role == "EMPLOYEE"
+
+
+def test_oidc_exchange_rejects_auto_provision_for_unapproved_domain(client, app):
+    private_key = _configure_oidc(app)
+    app.config.update(
+        OIDC_AUTO_PROVISION_USERS=True,
+        OIDC_AUTO_PROVISION_DEFAULT_ROLE="EMPLOYEE",
+        OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS=["company.example"],
+    )
+    token = _build_oidc_token(
+        private_key,
+        email="contractor@outside.example",
+        subject="oidc-user-999",
+        issuer=app.config["OIDC_ISSUER"],
+        audience=app.config["OIDC_AUDIENCE"],
+    )
+
+    response = client.post("/api/auth/sso/exchange", json={"id_token": token})
+
+    assert response.status_code == 403
+    assert "not approved for automatic WorkforceIQ signup" in response.get_json()["error"]
+
+
 def test_password_login_rejects_oidc_only_account(client, app):
     with app.app_context():
         db.session.add(

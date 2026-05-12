@@ -5,10 +5,11 @@ This managed AWS path is production-oriented, not free-tier safe. If you want th
 This path runs the production app on AWS with:
 
 - API, Celery, and Nginx on one EC2 host using Docker Compose.
-- MySQL on Amazon RDS with encrypted storage, automated backups, and TLS-required connections.
-- Redis on Amazon ElastiCache with in-transit encryption and AUTH.
+- MySQL on Amazon RDS with encrypted storage, automated backups, TLS-required connections, and private data subnets.
+- Redis on Amazon ElastiCache with in-transit encryption, AUTH, and private data subnets.
 - App-level JSON backups copied to S3 by cron.
-- Application Load Balancer health checks against `/api/health`.
+- Optional AWS Cognito user pool for frontend sign-in and backend OIDC token exchange.
+- Application Load Balancer health checks against `/api/health/ready`.
 - Secrets in AWS Secrets Manager, deployment through ECR and SSM.
 
 This is the lowest-cost AWS shape that still separates stateful services from the app host. For larger companies, the next step is ECS/Fargate or EKS, private app subnets, NAT or VPC endpoints, WAF, centralized log retention, and Multi-AZ RDS enabled.
@@ -30,12 +31,18 @@ cd infra/aws/terraform
 terraform init
 terraform plan -out tfplan `
   -var "aws_region=us-east-1" `
-  -var "cors_origins=https://your-frontend.example.com" `
   -var "app_domain=api.your-domain.example" `
+  -var "frontend_base_url=https://app.your-frontend.example.com" `
+  -var 'frontend_origins=["https://app.your-frontend.example.com"]' `
   -var "acm_certificate_arn=arn:aws:acm:us-east-1:123456789012:certificate/..." `
+  -var "enable_cognito=true" `
+  -var "cognito_domain_prefix=workforceiq-prod-auth" `
+  -var 'cognito_allowed_signup_email_domains=["your-company.com"]' `
   -var "ssh_ingress_cidr="
 terraform apply tfplan
 ```
+
+If you want repeatable inputs instead of long CLI flags, copy `infra/aws/terraform/prod.auto.tfvars.example` to `prod.auto.tfvars` and edit it.
 
 For a temporary HTTP-only staging stack, omit `app_domain` and `acm_certificate_arn`. Do not use HTTP-only for real HR data.
 
@@ -72,6 +79,28 @@ Invoke-RestMethod -Uri $health
 
 The ALB target group also checks `/api/health` on the EC2 host through Nginx port `8080`.
 
+## Frontend + Cognito
+
+If `enable_cognito=true`, Terraform also provisions:
+
+- Cognito user pool
+- hosted UI domain
+- frontend app client
+- Cognito groups that mirror WorkforceIQ RBAC roles
+
+After apply:
+
+```powershell
+terraform output frontend_env
+terraform output cognito_login_url
+```
+
+Use the `frontend_env` output values in your frontend build and send the Cognito `id_token` to `POST /api/auth/sso/exchange`.
+
+Full frontend flow guide:
+
+- [docs/aws-frontend-integration.md](aws-frontend-integration.md)
+
 ## GitHub Actions Deploy
 
 Use `.github/workflows/aws-deploy.yml` after creating these GitHub secrets:
@@ -104,9 +133,10 @@ aws ssm send-command `
 ## Production Cutover Checklist
 
 - Use HTTPS with ACM and Route 53 DNS before importing real company data.
+- Set `frontend_base_url`, `frontend_origins`, and Cognito callback/logout URLs before releasing the frontend.
 - Set `rds_multi_az=true` for production HR workloads when budget allows.
 - Keep `deletion_protection=true` and `skip_final_snapshot=false`.
 - Configure `alarm_sns_topic_arn` for unhealthy ALB target notifications.
 - Confirm GitHub OIDC deploy role has least-privilege access to ECR and SSM.
 - Run a restore drill from RDS point-in-time recovery and from the S3 JSON backup before customer migration.
-- Move EC2 into private subnets with NAT gateways or VPC endpoints for stricter enterprise isolation.
+- Add customer-specific onboarding or SCIM if you outgrow Cognito self-signup plus auto-provisioning.

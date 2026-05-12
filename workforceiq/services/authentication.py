@@ -6,7 +6,7 @@ from uuid import uuid4
 from flask import current_app, request
 from flask_jwt_extended import create_access_token, create_refresh_token, decode_token
 from sqlalchemy import select
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from workforceiq.audit import record_audit_log
 from workforceiq.auth import RequestContext, RoleName, parse_role
@@ -97,6 +97,7 @@ def login_user(payload: dict) -> dict:
 def exchange_oidc_token(payload: dict) -> dict:
     organization_id = str(payload.get("organization_id") or current_app.config["DEFAULT_ORGANIZATION_ID"])
     claims = verify_oidc_token(payload.get("id_token"))
+    claims["email"] = _normalize_email(claims.get("email"))
     account = db.session.execute(
         select(UserAccount)
         .where(
@@ -105,6 +106,8 @@ def exchange_oidc_token(payload: dict) -> dict:
         )
         .limit(1)
     ).scalar_one_or_none()
+    if account is None:
+        account = _auto_provision_oidc_account_if_allowed(organization_id=organization_id, claims=claims)
     if account is None:
         raise AccessDeniedError(
             "Access denied. No WorkforceIQ account is provisioned for this enterprise identity."
@@ -432,3 +435,48 @@ def _bind_or_validate_oidc_identity(account: UserAccount, claims: dict) -> None:
 
 def _auth_provider(account: UserAccount) -> str:
     return (account.auth_provider or AUTH_PROVIDER_LOCAL).strip().lower()
+
+
+def _auto_provision_oidc_account_if_allowed(*, organization_id: str, claims: dict) -> UserAccount | None:
+    if not current_app.config["OIDC_AUTO_PROVISION_USERS"]:
+        return None
+
+    email = _normalize_email(claims.get("email"))
+    allowed_domains = current_app.config["OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS"]
+    email_domain = email.rsplit("@", 1)[1]
+    if allowed_domains and email_domain not in allowed_domains:
+        raise AccessDeniedError(
+            f"Access denied. Email domain `{email_domain}` is not approved for automatic WorkforceIQ signup."
+        )
+
+    default_role = parse_role(current_app.config["OIDC_AUTO_PROVISION_DEFAULT_ROLE"])
+    account = UserAccount(
+        organization_id=organization_id,
+        email=email,
+        password_hash=generate_password_hash(str(uuid4())),
+        auth_provider=AUTH_PROVIDER_OIDC,
+        external_subject=str(claims["sub"]),
+        role=default_role.value,
+    )
+    db.session.add(account)
+    db.session.flush()
+    record_audit_log(
+        user_id="system:oidc-auto-provision",
+        organization_id=organization_id,
+        action="CREATE",
+        target_entity="user_accounts",
+        target_id=str(account.id),
+        fields_changed=["email", "auth_provider", "external_subject", "role"],
+        old_values={},
+        new_values={
+            "email": email,
+            "auth_provider": AUTH_PROVIDER_OIDC,
+            "external_subject": str(claims["sub"]),
+            "role": default_role.value,
+        },
+        extra_metadata={
+            "event": "oidc_auto_provision",
+            "issuer": claims["iss"],
+        },
+    )
+    return account

@@ -81,6 +81,9 @@ class BaseConfig:
     OIDC_JWKS_JSON = ""
     OIDC_CLOCK_SKEW_SECONDS = 60
     OIDC_REQUIRE_VERIFIED_EMAIL = True
+    OIDC_AUTO_PROVISION_USERS = False
+    OIDC_AUTO_PROVISION_DEFAULT_ROLE = "EMPLOYEE"
+    OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS: list[str] = []
     ML_STALE_DAYS = 30
     ELASTICSEARCH_URL = ""
     BACKUP_DIRECTORY = "backups"
@@ -188,6 +191,20 @@ def apply_runtime_settings(app) -> None:
         "OIDC_REQUIRE_VERIFIED_EMAIL",
         app.config["OIDC_REQUIRE_VERIFIED_EMAIL"],
     )
+    app.config["OIDC_AUTO_PROVISION_USERS"] = _bool_env(
+        "OIDC_AUTO_PROVISION_USERS",
+        app.config["OIDC_AUTO_PROVISION_USERS"],
+    )
+    app.config["OIDC_AUTO_PROVISION_DEFAULT_ROLE"] = os.getenv(
+        "OIDC_AUTO_PROVISION_DEFAULT_ROLE",
+        app.config["OIDC_AUTO_PROVISION_DEFAULT_ROLE"],
+    ).strip().upper()
+    auto_provision_domains = os.getenv("OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS", "")
+    app.config["OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS"] = [
+        domain.strip().lower()
+        for domain in auto_provision_domains.split(",")
+        if domain.strip()
+    ]
     app.config["ELASTICSEARCH_URL"] = os.getenv("ELASTICSEARCH_URL", app.config["ELASTICSEARCH_URL"])
     app.config["BACKUP_DIRECTORY"] = os.getenv("BACKUP_DIRECTORY", app.config["BACKUP_DIRECTORY"])
     app.config["STRUCTURED_LOGS"] = _bool_env("STRUCTURED_LOGS", app.config["STRUCTURED_LOGS"])
@@ -234,3 +251,7 @@ def validate_runtime_config(app) -> None:
             raise RuntimeError("OIDC_AUDIENCE must be configured when OIDC SSO is enabled.")
         if not (app.config["OIDC_JWKS_URI"] or app.config["OIDC_JWKS_JSON"]):
             raise RuntimeError("OIDC_JWKS_URI or OIDC_JWKS_JSON must be configured when OIDC SSO is enabled.")
+        if app.config["OIDC_AUTO_PROVISION_USERS"] and not app.config["OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS"]:
+            raise RuntimeError(
+                "OIDC_AUTO_PROVISION_ALLOWED_EMAIL_DOMAINS must be configured when OIDC auto-provisioning is enabled."
+            )

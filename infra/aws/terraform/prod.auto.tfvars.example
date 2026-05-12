@@ -1,0 +1,22 @@
+aws_region         = "us-east-1"
+app_domain         = "api.example.com"
+frontend_base_url  = "https://app.example.com"
+frontend_origins   = ["https://app.example.com"]
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/replace-me"
+
+enable_cognito                     = true
+cognito_domain_prefix             = "workforceiq-prod-auth"
+cognito_self_signup_enabled       = true
+cognito_auto_provision_users      = true
+cognito_auto_provision_default_role = "EMPLOYEE"
+cognito_allowed_signup_email_domains = ["example.com"]
+
+ec2_instance_type                 = "t3.small"
+db_instance_class                 = "db.t4g.micro"
+redis_node_type                   = "cache.t4g.micro"
+rds_multi_az                      = false
+rds_performance_insights_enabled  = false
+deletion_protection               = true
+skip_final_snapshot               = false
+ssh_ingress_cidr                  = ""
+alarm_sns_topic_arn               = ""
