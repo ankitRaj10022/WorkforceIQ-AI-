@@ -4,6 +4,7 @@
 !.env.production.example
 !cloud/compose/env.cloud.example
 .venv/
+node_modules/
 __pycache__/
 *.pyc
 instance/*.db

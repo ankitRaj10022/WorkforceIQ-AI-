@@ -1,0 +1,271 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f0e8;
+  --foreground: #1e2329;
+  --surface: rgba(255, 255, 255, 0.76);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --surface-ink: rgba(30, 35, 41, 0.84);
+  --border: rgba(30, 35, 41, 0.12);
+  --border-strong: rgba(30, 35, 41, 0.22);
+  --accent: #0c6c73;
+  --accent-strong: #07474d;
+  --success: #227a52;
+  --warning: #b06b11;
+  --danger: #a03d34;
+  --muted: #6f7a83;
+  --shadow: 0 24px 80px rgba(18, 23, 29, 0.12);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-ink: var(--surface-ink);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-muted: var(--muted);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(12, 108, 115, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(32, 122, 82, 0.08), transparent 22%),
+    linear-gradient(180deg, #fbf8f1 0%, #f4f0e8 42%, #ece6db 100%);
+}
+
+body {
+  min-height: 100vh;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(12, 108, 115, 0.18);
+}
+
+.shell-grid {
+  position: relative;
+}
+
+.shell-grid::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(30, 35, 41, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 35, 41, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.42), transparent 85%);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.panel-strong {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  backdrop-filter: blur(24px);
+  box-shadow: var(--shadow);
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.metric {
+  font-family: var(--font-mono);
+  letter-spacing: -0.04em;
+}
+
+.status-dot {
+  display: inline-block;
+  height: 0.65rem;
+  width: 0.65rem;
+  border-radius: 9999px;
+}
+
+.status-dot.ok {
+  background: var(--success);
+}
+
+.status-dot.warn {
+  background: var(--warning);
+}
+
+.status-dot.fail {
+  background: var(--danger);
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.95rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.8rem 0.95rem;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.field:focus {
+  outline: none;
+  border-color: rgba(12, 108, 115, 0.4);
+  box-shadow: 0 0 0 4px rgba(12, 108, 115, 0.12);
+  transform: translateY(-1px);
+}
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(7, 71, 77, 0.15);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: white;
+  font-weight: 700;
+  padding: 0.8rem 1.2rem;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    filter 140ms ease;
+  box-shadow: 0 14px 32px rgba(7, 71, 77, 0.2);
+}
+
+.button-primary:hover {
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+}
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--foreground);
+  font-weight: 700;
+  padding: 0.8rem 1.2rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 9999px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.badge-neutral {
+  background: rgba(30, 35, 41, 0.08);
+  color: var(--foreground);
+}
+
+.badge-success {
+  background: rgba(34, 122, 82, 0.12);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: rgba(176, 107, 17, 0.12);
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: rgba(160, 61, 52, 0.12);
+  color: var(--danger);
+}
+
+.table-shell {
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+}
+
+.table-shell table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-shell th,
+.table-shell td {
+  border-bottom: 1px solid rgba(30, 35, 41, 0.08);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-shell th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table-shell tr:last-child td {
+  border-bottom: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.hero-orbit {
+  position: absolute;
+  inset: auto -4rem -4rem auto;
+  height: 14rem;
+  width: 14rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(12, 108, 115, 0.16);
+  background: radial-gradient(circle, rgba(12, 108, 115, 0.16), transparent 64%);
+  filter: blur(6px);
+}
+
+@media (max-width: 768px) {
+  .table-shell {
+    overflow-x: auto;
+  }
+}

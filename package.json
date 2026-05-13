@@ -1,0 +1,12 @@
+{
+  "name": "workforceiq-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "build:web": "npm run build --workspace=@workforceiq/web",
+    "lint:web": "npm run lint --workspace=@workforceiq/web",
+    "typecheck:web": "npm run typecheck --workspace=@workforceiq/web"
+  }
+}

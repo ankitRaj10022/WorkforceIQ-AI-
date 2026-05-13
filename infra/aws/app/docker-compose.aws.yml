@@ -17,6 +17,7 @@ services:
       - .env.aws
     volumes:
       - ./backups:/app/backups
+      - ./global-bundle.pem:/opt/workforceiq/global-bundle.pem:ro
     command: sh -c "flask db upgrade && gunicorn -c gunicorn.conf.py run:app"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3).read()\""]
@@ -30,6 +31,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env.aws
+    volumes:
+      - ./global-bundle.pem:/opt/workforceiq/global-bundle.pem:ro
     command: celery -A workforceiq.celery_app.celery worker --loglevel=info
     depends_on:
       app:
