@@ -8,6 +8,7 @@ applications:
           commands:
             - npm ci
             - npm install --workspace=@workforceiq/web lightningcss-linux-x64-gnu@1.32.0 --no-save
+            - npm install --workspace=@workforceiq/web @tailwindcss/oxide-linux-x64-gnu@4.3.0 --no-save
         build:
           commands:
             - npm run build:web
