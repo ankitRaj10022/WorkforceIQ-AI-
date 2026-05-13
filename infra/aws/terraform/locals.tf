@@ -13,7 +13,7 @@ locals {
   )
 
   cognito_domain_prefix = var.cognito_domain_prefix != "" ? var.cognito_domain_prefix : substr(
-    regexreplace(lower("${var.project_name}-${var.environment}-${random_id.suffix.hex}"), "[^a-z0-9-]", "-"),
+    lower("${var.project_name}-${var.environment}-${random_id.suffix.hex}"),
     0,
     63,
   )
