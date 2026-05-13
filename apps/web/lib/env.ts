@@ -1,3 +1,5 @@
+import { generatedPublicConfig } from "@/lib/generated-public-config";
+
 type EnvKey =
   | "NEXT_PUBLIC_WORKFORCEIQ_API_BASE_URL"
   | "NEXT_PUBLIC_WORKFORCEIQ_ORGANIZATION_ID"
@@ -9,7 +11,7 @@ type EnvKey =
   | "NEXT_PUBLIC_COGNITO_LOGOUT_URL";
 
 function readEnv(key: EnvKey): string {
-  const value = process.env[key];
+  const value = process.env[key] || generatedPublicConfig[key];
   if (!value) {
     throw new Error(`Missing required frontend environment variable: ${key}`);
   }
