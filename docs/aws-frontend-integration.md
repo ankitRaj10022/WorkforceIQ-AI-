@@ -139,3 +139,7 @@ Use `EMPLOYEE` as the default role unless you have a stronger approval workflow.
   API to an HTTPS custom domain before launch.
 - If you later want stricter onboarding, set `cognito_auto_provision_users = false` and provision `user_accounts` through admin workflows instead.
 - After Amplify gives you the real `https://*.amplifyapp.com` or custom domain, update `frontend_base_url` and `frontend_origins` in `prod.auto.tfvars`, then re-run Terraform so Cognito callback and logout URLs match the live frontend.
+
+For the current WorkforceIQ production target on `app.workforceiq.com` and
+`api.workforceiq.com`, use the concrete cutover runbook in
+[docs/workforceiq-production-cutover.md](workforceiq-production-cutover.md).

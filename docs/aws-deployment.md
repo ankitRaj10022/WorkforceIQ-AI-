@@ -140,3 +140,8 @@ aws ssm send-command `
 - Confirm GitHub OIDC deploy role has least-privilege access to ECR and SSM.
 - Run a restore drill from RDS point-in-time recovery and from the S3 JSON backup before customer migration.
 - Add customer-specific onboarding or SCIM if you outgrow Cognito self-signup plus auto-provisioning.
+
+For the current WorkforceIQ production target on `app.workforceiq.com` and
+`api.workforceiq.com`, use:
+
+- [docs/workforceiq-production-cutover.md](workforceiq-production-cutover.md)
