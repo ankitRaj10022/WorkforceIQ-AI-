@@ -56,6 +56,10 @@ NEXT_PUBLIC_COGNITO_LOGOUT_URL
 
 For the current managed stack, these values should be applied to `apps/web/.env.local` for local validation and then copied into AWS Amplify environment variables for hosted builds.
 
+For local preview, do not install the localhost build as a desktop or mobile
+app. Only install the hosted frontend origin after Cognito callback URLs and
+logout URLs point at the real deployed domain.
+
 ## 4. Deploy The Frontend In Amplify
 
 Amplify currently documents managed SSR support for Next.js versions `12` through `15`, so the web client is pinned to Next `15` for AWS-native hosting compatibility.
@@ -131,5 +135,7 @@ Use `EMPLOYEE` as the default role unless you have a stronger approval workflow.
 - Keep `cognito_allowed_signup_email_domains` non-empty.
 - Use ACM + HTTPS for both frontend and backend domains.
 - Do not let the frontend connect directly to MySQL or Redis.
+- Do not treat the current HTTP-only ALB endpoint as final production. Move the
+  API to an HTTPS custom domain before launch.
 - If you later want stricter onboarding, set `cognito_auto_provision_users = false` and provision `user_accounts` through admin workflows instead.
 - After Amplify gives you the real `https://*.amplifyapp.com` or custom domain, update `frontend_base_url` and `frontend_origins` in `prod.auto.tfvars`, then re-run Terraform so Cognito callback and logout URLs match the live frontend.

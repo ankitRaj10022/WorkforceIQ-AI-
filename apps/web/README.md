@@ -30,6 +30,9 @@ cd apps\web
 npm run dev
 ```
 
+Do not install the localhost dev build as a desktop or mobile app. The install
+surface is intended for the hosted frontend origin, not local preview.
+
 ## Environment
 
 Copy `.env.example` to `.env.local` inside `apps/web` and set:
@@ -52,5 +55,6 @@ This repo includes a root `amplify.yml` configured for monorepo deployment with 
 Use this app when:
 
 - deploying the browser client to AWS Amplify
+- deploying the browser client to Vercel with a custom domain
 - connecting Cognito hosted login callbacks
 - preparing the future open-source desktop and mobile shell

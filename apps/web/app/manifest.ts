@@ -1,12 +1,20 @@
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const isLocalPreview = process.env.NODE_ENV !== "production";
+
   return {
-    name: "WorkforceIQ Secure Portal",
-    short_name: "WorkforceIQ",
+    id: isLocalPreview ? "/?app=workforceiq-dev" : "/?app=workforceiq",
+    name: isLocalPreview
+      ? "WorkforceIQ Dev Portal"
+      : "WorkforceIQ Secure Portal",
+    short_name: isLocalPreview ? "WFIQ Dev" : "WorkforceIQ",
     description:
-      "Secure workforce operations portal for desktop and mobile installation.",
+      isLocalPreview
+        ? "Local preview build for WorkforceIQ. Do not install this build for production use."
+        : "Secure workforce operations portal for desktop and mobile installation.",
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#f2ede3",
     theme_color: "#0f766e",

@@ -6,6 +6,7 @@ import {
   COGNITO_STATE_COOKIE,
   createPkceBundle,
 } from "@/lib/cognito";
+import { getPublicAppConfig } from "@/lib/env";
 
 function authCookieOptions(maxAge: number) {
   return {
@@ -17,7 +18,16 @@ function authCookieOptions(maxAge: number) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestOrigin = new URL(request.url).origin;
+  const callbackOrigin = new URL(
+    getPublicAppConfig().cognitoCallbackUrl,
+  ).origin;
+
+  if (requestOrigin !== callbackOrigin) {
+    return NextResponse.redirect(new URL("/auth/login", callbackOrigin));
+  }
+
   const pkce = createPkceBundle();
   const response = NextResponse.redirect(
     buildAuthorizeUrl({

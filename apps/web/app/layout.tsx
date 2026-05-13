@@ -15,16 +15,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const isLocalPreview = process.env.NODE_ENV !== "production";
+
 export const metadata: Metadata = {
-  title: "WorkforceIQ Portal",
+  title: isLocalPreview ? "WorkforceIQ Dev Portal" : "WorkforceIQ Portal",
   description:
     "Enterprise workforce operations portal for WorkforceIQ on AWS Cognito and the WorkforceIQ API.",
   manifest: "/manifest.webmanifest",
-  applicationName: "WorkforceIQ",
+  applicationName: isLocalPreview ? "WorkforceIQ Dev" : "WorkforceIQ",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "WorkforceIQ",
+    title: isLocalPreview ? "WorkforceIQ Dev" : "WorkforceIQ",
   },
 };
 

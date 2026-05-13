@@ -22,7 +22,7 @@ function clearAuthCookies(response: NextResponse) {
 
 function buildErrorRedirect(message: string) {
   const redirectUrl = new URL("/", "http://workforceiq.local");
-  redirectUrl.searchParams.set("error", encodeURIComponent(message));
+  redirectUrl.searchParams.set("error", message.trim());
   return redirectUrl.pathname + redirectUrl.search;
 }
 

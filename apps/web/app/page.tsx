@@ -9,9 +9,7 @@ type HomePageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-async function fetchHealth() {
-  const { apiBaseUrl } = getPublicAppConfig();
-
+async function fetchHealth(apiBaseUrl: string) {
   try {
     const response = await fetch(`${apiBaseUrl}/api/health`, {
       cache: "no-store",
@@ -36,17 +34,52 @@ async function fetchHealth() {
   }
 }
 
+function decodeErrorMessage(value: string) {
+  let decoded = value.trim();
+
+  for (let attempts = 0; attempts < 2; attempts += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) {
+        break;
+      }
+      decoded = next;
+    } catch {
+      break;
+    }
+  }
+
+  return decoded;
+}
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const session = await readPortalSession();
   if (session) {
     redirect("/portal");
   }
 
+  const config = getPublicAppConfig();
   const params = await searchParams;
   const errorParam = params.error;
+  const noticeParam = params.notice;
   const error =
-    typeof errorParam === "string" && errorParam.trim() ? errorParam : null;
-  const health = await fetchHealth();
+    typeof errorParam === "string" && errorParam.trim()
+      ? decodeErrorMessage(errorParam)
+      : null;
+  const notice =
+    typeof noticeParam === "string" && noticeParam.trim()
+      ? decodeErrorMessage(noticeParam)
+      : null;
+  const errorHint = error?.includes("Email domain")
+    ? "Use an approved work email domain or ask an administrator to expand the signup allowlist."
+    : error?.includes("Sign-in verification failed")
+      ? "If you started sign-in from an old localhost install, remove it and reinstall from the live site."
+      : null;
+  const transportWarning =
+    config.apiBaseUrl.startsWith("http://") &&
+    !config.apiBaseUrl.startsWith("http://localhost") &&
+    !config.apiBaseUrl.startsWith("http://127.0.0.1");
+  const health = await fetchHealth(config.apiBaseUrl);
 
   return (
     <main className="shell-grid min-h-screen px-5 py-6 sm:px-8 lg:px-10">
@@ -85,9 +118,18 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </a>
               </div>
 
+              {notice ? (
+                <div className="rounded-2xl border border-border bg-white/72 px-4 py-3 text-sm text-foreground shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+                  {notice}
+                </div>
+              ) : null}
+
               {error ? (
                 <div className="rounded-2xl border border-danger/20 bg-danger/8 px-4 py-3 text-sm text-danger">
-                  {decodeURIComponent(error)}
+                  <p>{error}</p>
+                  {errorHint ? (
+                    <p className="mt-2 text-danger/80">{errorHint}</p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -123,6 +165,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <p className="mt-2 text-sm leading-6 text-muted">
                   {health.detail}
                 </p>
+                {transportWarning ? (
+                  <p className="mt-3 rounded-2xl border border-warning/25 bg-warning/10 px-3 py-2 text-xs leading-5 text-warning">
+                    Frontend auth is live, but the backend API is still exposed
+                    over HTTP. Attach ACM and move the API to HTTPS before
+                    production launch.
+                  </p>
+                ) : null}
               </div>
 
               <div className="panel rounded-[1.5rem] p-5">

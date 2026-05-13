@@ -15,8 +15,24 @@ export function InstallAppBanner() {
     null,
   );
   const [dismissed, setDismissed] = useState(false);
+  const [eligibleOrigin, setEligibleOrigin] = useState(false);
 
   useEffect(() => {
+    const isLoopback =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    const isEligible = window.isSecureContext && !isLoopback;
+
+    setEligibleOrigin(isEligible);
+
+    if (window.localStorage.getItem("wf_install_banner_dismissed") === "1") {
+      setDismissed(true);
+    }
+
+    if (!isEligible) {
+      return;
+    }
+
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setPromptEvent(event as BeforeInstallPromptEvent);
@@ -31,7 +47,7 @@ export function InstallAppBanner() {
     };
   }, []);
 
-  if (!promptEvent || dismissed) {
+  if (!eligibleOrigin || !promptEvent || dismissed) {
     return null;
   }
 
@@ -65,7 +81,10 @@ export function InstallAppBanner() {
           <button
             type="button"
             className="button-secondary"
-            onClick={() => setDismissed(true)}
+            onClick={() => {
+              window.localStorage.setItem("wf_install_banner_dismissed", "1");
+              setDismissed(true);
+            }}
           >
             Dismiss
           </button>
