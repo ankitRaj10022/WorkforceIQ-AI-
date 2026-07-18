@@ -1,5 +1,9 @@
 # WorkforceIQ AI
 
+<p align="center">
+  <img src="apps/web/public/WorkforceIQ_AI.png" alt="WorkforceIQ portal preview" width="720">
+</p>
+
 WorkforceIQ AI is a workforce intelligence platform designed for organizations that need more than an employee directory and less chaos than spreadsheet-led HR operations. It combines governed employee data access, workforce reporting, auditability, role-based controls, and ML-assisted insight into a backend platform that can support internal pilots, controlled demos, and pre-production rollout.
 
 This repository is the working product foundation: Flask API, workforce domain model, authentication, RBAC, reporting, search, audit trails, async task wiring, migrations, tests, and AWS deployment paths.
